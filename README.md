@@ -58,10 +58,10 @@ docker run --rm -p 8080:80 \
   -e SCRAPPER_UPSTREAM=http://host.docker.internal:4011 \
   -e SCRAPPER_ADMIN_API_KEY=your-admin-key \
   scrapper-admin-ui
-# Entrypoint: /usr/local/bin/start.sh (envsubst nginx config, then nginx).
+# Node server: static dist/ + /scrapper-api proxy (server.mjs).
 ```
 
-Open http://localhost:8080 — API base `/scrapper-api` (nginx → scrapper).
+Open http://localhost:8080 — API base `/scrapper-api` (Node proxy → scrapper).
 
 ## Kubernetes (k3s, same cluster as timeline-scraper)
 
@@ -81,4 +81,4 @@ kubectl apply -f k8s/service.yaml -n timeline-scraper
 
 **GitHub Actions:** `.github/workflows/ci.yml` (lint + build), `.github/workflows/deploy.yml` (push `main` → registry + k3s). Uses the same `k3s` environment secrets as timeline-scraper (`REGISTRY_*`, `KUBE_CONFIG`).
 
-**Settings in prod:** leave API base URL as `/scrapper-api`. Admin API key in the UI can stay empty when nginx injects auth; override in Settings only for debugging.
+**Settings in prod:** leave API base URL as `/scrapper-api`. Admin API key in the UI can stay empty when the server injects auth via `SCRAPPER_ADMIN_API_KEY`; override in Settings only for debugging.

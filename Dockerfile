@@ -1,8 +1,7 @@
 # Build from repo root (scrapper-admin-ui/):
 #   docker build -t scrapper-admin-ui .
 #
-# Production: nginx serves dist/ and proxies /scrapper-api → SCRAPPER_UPSTREAM.
-# Bearer token from SCRAPPER_ADMIN_API_KEY (k8s secret), not the JS bundle.
+# Production: Node serves dist/ and proxies /scrapper-api → SCRAPPER_UPSTREAM.
 FROM node:20-alpine AS build
 WORKDIR /app
 
@@ -16,24 +15,18 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM nginx:1.27-alpine
-RUN apk add --no-cache gettext
+FROM node:20-alpine
+WORKDIR /app
 
-ARG CACHEBUST=
-RUN test -n "$CACHEBUST" || true
+ENV NODE_ENV=production
+ENV PORT=80
 
-COPY nginx/default.conf.template /etc/nginx/scrapper/default.conf.template
-COPY docker/start.sh /usr/local/bin/start.sh
-RUN sed -i 's/\r$//' /usr/local/bin/start.sh \
-  && chmod +x /usr/local/bin/start.sh \
-  && test -x /usr/local/bin/start.sh \
-  && rm -f /etc/nginx/conf.d/default.conf
-
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY server.mjs ./
+COPY --from=build /app/dist ./dist
 
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1
+  CMD node -e "fetch('http://127.0.0.1/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-ENTRYPOINT ["/usr/local/bin/start.sh"]
+CMD ["node", "server.mjs"]

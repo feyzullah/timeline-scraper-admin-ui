@@ -29,6 +29,16 @@ jobs:
 
       - name: Verify Docker image
         run: |
-          docker build -t scrapper-admin-ui:ci .
+          docker build -t scrapper-admin-ui:ci --build-arg CACHEBUST=${{ github.sha }} .
           docker run --rm --entrypoint sh scrapper-admin-ui:ci -c \
-            'test -x /docker-entrypoint.d/99-scrapper-proxy-config.sh && test -f /etc/nginx/scrapper/default.conf.template'
+            'test -x /docker-entrypoint.sh && test -x /docker-entrypoint.d/99-scrapper-proxy-config.sh && test -f /etc/nginx/scrapper/default.conf.template'
+          CID=$(docker run -d -e SCRAPPER_UPSTREAM=http://127.0.0.1:9 -e SCRAPPER_ADMIN_API_KEY=ci scrapper-admin-ui:ci)
+          trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
+          for i in $(seq 1 30); do
+            if docker exec "$CID" wget -qO- http://127.0.0.1/ >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs "$CID" 2>&1 | tail -30
+          exit 1

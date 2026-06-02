@@ -43,17 +43,29 @@ jobs:
           build-args: |
             VITE_SCRAPPER_API_BASE_URL=/scrapper-api
             VITE_SCRAPPER_ADMIN_API_KEY=
+            CACHEBUST=${{ github.sha }}
           tags: |
             ${{ steps.tag.outputs.image }}:${{ steps.tag.outputs.tag }}
             ${{ steps.tag.outputs.image }}:latest
           cache-from: type=gha,scope=scrapper-admin-ui
           cache-to: type=gha,mode=max,scope=scrapper-admin-ui
 
-      - name: Verify entrypoint hook in pushed image
+      - name: Verify image starts with nginx entrypoint
         run: |
-          docker pull ${{ steps.tag.outputs.image }}:${{ steps.tag.outputs.tag }}
-          docker run --rm --entrypoint sh ${{ steps.tag.outputs.image }}:${{ steps.tag.outputs.tag }} -c \
-            'test -x /docker-entrypoint.d/99-scrapper-proxy-config.sh'
+          IMAGE="${{ steps.tag.outputs.image }}:${{ steps.tag.outputs.tag }}"
+          docker pull "$IMAGE"
+          docker run --rm --entrypoint sh "$IMAGE" -c \
+            'test -x /docker-entrypoint.sh && test -x /docker-entrypoint.d/99-scrapper-proxy-config.sh'
+          CID=$(docker run -d -e SCRAPPER_UPSTREAM=http://127.0.0.1:9 -e SCRAPPER_ADMIN_API_KEY=ci "$IMAGE")
+          trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
+          for i in $(seq 1 30); do
+            if docker exec "$CID" wget -qO- http://127.0.0.1/ >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs "$CID" 2>&1 | tail -30
+          exit 1
 
   deploy:
     needs: build

@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { FixturesListResponse } from '../api/types';
 import { useScrapperClient } from '../api/client';
-import { useSettings } from '../context/SettingsContext';
 
 const STATUS_LABELS: Record<string, string> = {
   no_data: 'No data',
@@ -48,26 +47,27 @@ function scoreLine(row: FixturesListResponse['items'][0]) {
 
 export function FixturesPage() {
   const { get, apiBaseUrl } = useScrapperClient();
-  const { defaultAppId } = useSettings();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const appId = searchParams.get('appId') || '';
   const team = searchParams.get('team') || '';
   const dataStatus = searchParams.get('dataStatus') || '';
   const source = searchParams.get('source') || 'all';
 
   const [teamDraft, setTeamDraft] = useState(team);
+  const [appIdDraft, setAppIdDraft] = useState(appId);
 
   const queryKey = useMemo(
-    () => ['fixtures', apiBaseUrl, defaultAppId, team, dataStatus, source],
-    [apiBaseUrl, defaultAppId, team, dataStatus, source]
+    () => ['fixtures', apiBaseUrl, appId, team, dataStatus, source],
+    [apiBaseUrl, appId, team, dataStatus, source]
   );
 
   const fixtures = useQuery({
     queryKey,
     queryFn: () =>
       get<FixturesListResponse>('/admin/v1/fixtures', {
-        appId: defaultAppId,
         limit: 200,
+        ...(appId ? { appId } : {}),
         ...(team ? { team } : {}),
         ...(dataStatus ? { dataStatus } : {}),
         ...(source !== 'all' ? { source } : {}),
@@ -91,6 +91,8 @@ export function FixturesPage() {
     const next = new URLSearchParams(searchParams);
     if (teamDraft) next.set('team', teamDraft);
     else next.delete('team');
+    if (appIdDraft) next.set('appId', appIdDraft);
+    else next.delete('appId');
     setSearchParams(next);
   };
 
@@ -110,7 +112,17 @@ export function FixturesPage() {
         </p>
       </header>
 
-      <div className="glass rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+      <div className="glass rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+        <label className="space-y-1">
+          <span className="text-[10px] uppercase text-slate-500">App ID (optional)</span>
+          <input
+            className="input-touch font-mono"
+            value={appIdDraft}
+            onChange={(e) => setAppIdDraft(e.target.value)}
+            placeholder="All apps"
+            onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
+          />
+        </label>
         <label className="space-y-1 sm:col-span-2 lg:col-span-1">
           <span className="text-[10px] uppercase text-slate-500">Team search</span>
           <input
@@ -163,6 +175,7 @@ export function FixturesPage() {
 
       <div className="text-xs text-slate-500">
         {fixtures.data ? `${fixtures.data.total} match(es)` : '…'}
+        {appId ? ` · appId: ${appId}` : ''}
         {dataStatus ? ` · filter: ${STATUS_LABELS[dataStatus] || dataStatus}` : ''}
       </div>
 
@@ -176,7 +189,7 @@ export function FixturesPage() {
               {statusBadge(row.dataStatus)}
               <Link
                 className="text-accent text-sm font-medium min-h-11 inline-flex items-center px-2 -mr-2"
-                to={`/fixtures/edit?appId=${encodeURIComponent(row.appId)}&matchKey=${encodeURIComponent(row.matchKey)}&source=${row.source}`}
+                to={`fixtures/edit?appId=${encodeURIComponent(row.appId)}&matchKey=${encodeURIComponent(row.matchKey)}&source=${row.source}`}
               >
                 Edit →
               </Link>
@@ -185,7 +198,9 @@ export function FixturesPage() {
               <div className="text-white font-medium">
                 {row.homeTeam || '—'} vs {row.awayTeam || '—'}
               </div>
-              <div className="text-xs text-slate-500 font-mono mt-1 break-all">{row.matchKey}</div>
+              <div className="text-xs text-slate-500 font-mono mt-1 break-all">
+                {row.appId} · {row.matchKey}
+              </div>
               {row.kickoffUtc ? (
                 <div className="text-xs text-slate-600 mt-0.5">
                   {new Date(row.kickoffUtc).toLocaleString()}
@@ -217,6 +232,7 @@ export function FixturesPage() {
           <thead className="text-left text-slate-500 border-b border-white/5">
             <tr>
               <th className="p-3">Status</th>
+              <th className="p-3">App</th>
               <th className="p-3">Match</th>
               <th className="p-3">Score</th>
               <th className="p-3">Events</th>
@@ -233,6 +249,7 @@ export function FixturesPage() {
                     <div className="text-[10px] text-slate-600 mt-1">{row.dataStatusTags.join(', ')}</div>
                   ) : null}
                 </td>
+                <td className="p-3 font-mono text-xs text-slate-400">{row.appId}</td>
                 <td className="p-3">
                   <div className="text-white">
                     {row.homeTeam || '—'} vs {row.awayTeam || '—'}
@@ -254,7 +271,7 @@ export function FixturesPage() {
                 <td className="p-3 text-right">
                   <Link
                     className="text-accent text-sm hover:underline"
-                    to={`/fixtures/edit?appId=${encodeURIComponent(row.appId)}&matchKey=${encodeURIComponent(row.matchKey)}&source=${row.source}`}
+                    to={`fixtures/edit?appId=${encodeURIComponent(row.appId)}&matchKey=${encodeURIComponent(row.matchKey)}&source=${row.source}`}
                   >
                     Edit
                   </Link>
@@ -263,7 +280,7 @@ export function FixturesPage() {
             ))}
             {!fixtures.isLoading && (fixtures.data?.items.length ?? 0) === 0 ? (
               <tr>
-                <td colSpan={6} className="p-10 text-center text-slate-500">
+                <td colSpan={7} className="p-10 text-center text-slate-500">
                   No fixtures match filters
                 </td>
               </tr>

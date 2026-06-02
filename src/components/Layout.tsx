@@ -1,22 +1,23 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { stripAppBasePath } from '../lib/appPaths';
 import { useSettings } from '../context/SettingsContext';
 
 const nav = [
-  { to: '/', label: 'Dashboard', icon: '◆' },
-  { to: '/fixtures', label: 'Fixtures', icon: '⚽' },
-  { to: '/sessions', label: 'Sessions', icon: '▣' },
-  { to: '/requests', label: 'Requests', icon: '◎' },
-  { to: '/connections', label: 'Connections', icon: '⇄' },
-  { to: '/ops', label: 'Ops tuning', icon: '⚡' },
-  { to: '/api-map', label: 'API map', icon: '⌘' },
-  { to: '/settings', label: 'Settings', icon: '⚙' },
+  { to: '.', label: 'Dashboard', icon: '◆', end: true },
+  { to: 'fixtures', label: 'Fixtures', icon: '⚽' },
+  { to: 'sessions', label: 'Sessions', icon: '▣' },
+  { to: 'requests', label: 'Requests', icon: '◎' },
+  { to: 'connections', label: 'Connections', icon: '⇄' },
+  { to: 'ops', label: 'Ops tuning', icon: '⚡' },
+  { to: 'api-map', label: 'API map', icon: '⌘' },
+  { to: 'settings', label: 'Settings', icon: '⚙' },
 ] as const;
 
 const bottomNav = [
-  { to: '/', label: 'Home', icon: '◆', end: true },
-  { to: '/fixtures', label: 'Fixtures', icon: '⚽', end: false },
-  { to: '/ops', label: 'Ops', icon: '⚡', end: false },
+  { to: '.', label: 'Home', icon: '◆', end: true },
+  { to: 'fixtures', label: 'Fixtures', icon: '⚽', end: false },
+  { to: 'ops', label: 'Ops', icon: '⚡', end: false },
 ] as const;
 
 function navLinkClass(isActive: boolean) {
@@ -29,7 +30,7 @@ function navLinkClass(isActive: boolean) {
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { apiBaseUrl, defaultAppId } = useSettings();
+  const { apiBaseUrl } = useSettings();
 
   return (
     <>
@@ -38,16 +39,13 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <div className="text-[10px] font-mono text-slate-500 mt-1 truncate" title={apiBaseUrl}>
           {apiBaseUrl}
         </div>
-        <div className="text-[10px] text-slate-600 mt-0.5">
-          appId: <span className="text-accent/80 font-mono">{defaultAppId}</span>
-        </div>
       </div>
       <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
         {nav.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === '/'}
+            end={'end' in item ? item.end : false}
             onClick={onNavigate}
             className={({ isActive }) => navLinkClass(isActive)}
           >
@@ -79,8 +77,9 @@ export function Layout() {
     };
   }, [menuOpen]);
 
+  const appPath = stripAppBasePath(location.pathname);
   const menuActive = !bottomNav.some((item) =>
-    item.end ? location.pathname === item.to : location.pathname.startsWith(item.to),
+    item.end ? appPath === '/' : appPath === `/${item.to}` || appPath.startsWith(`/${item.to}/`)
   );
 
   return (

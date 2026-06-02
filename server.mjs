@@ -3,7 +3,7 @@
  * Env: PORT, APP_BASE_PATH, SCRAPPER_UPSTREAM, SCRAPPER_ADMIN_API_KEY.
  */
 import { createServer } from 'node:http';
-import { createReadStream, existsSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { normalizeBasePath, scrapperApiPrefix } from './shared/appPaths.mjs';
@@ -76,6 +76,31 @@ function sendFile(res, filePath, { cache = false } = {}) {
   stream.pipe(res);
 }
 
+let indexHtmlTemplate = null;
+
+function runtimeConfigJson() {
+  return JSON.stringify({
+    apiBaseUrl: API_PREFIX,
+    appBasePath: APP_BASE || '/',
+    serverAuth: Boolean(ADMIN_API_KEY),
+  }).replace(/</g, '\\u003c');
+}
+
+function sendIndexHtml(res) {
+  if (!indexHtmlTemplate) {
+    indexHtmlTemplate = readFileSync(join(DIST, 'index.html'), 'utf8');
+  }
+  const snippet = `<script>window.__SCRAPPER_ADMIN_CONFIG__=${runtimeConfigJson()};</script>`;
+  const html = indexHtmlTemplate.includes('</head>')
+    ? indexHtmlTemplate.replace('</head>', `${snippet}\n</head>`)
+    : `${snippet}${indexHtmlTemplate}`;
+
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  res.end(html);
+}
+
 function redirect(res, location) {
   res.statusCode = 302;
   res.setHeader('Location', location);
@@ -136,6 +161,10 @@ function serveStatic(res, relativePath) {
   }
 
   if (existsSync(filePath) && statSync(filePath).isFile()) {
+    if (filePath === join(DIST, 'index.html')) {
+      sendIndexHtml(res);
+      return;
+    }
     const cache = ['.css', '.js', '.png', '.svg', '.woff2', '.ico'].includes(extname(filePath));
     sendFile(res, filePath, { cache });
     return;
@@ -149,7 +178,7 @@ function serveStatic(res, relativePath) {
 
   const indexPath = join(DIST, 'index.html');
   if (existsSync(indexPath)) {
-    sendFile(res, indexPath);
+    sendIndexHtml(res);
     return;
   }
 

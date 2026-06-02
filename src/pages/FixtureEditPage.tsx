@@ -73,7 +73,7 @@ export function FixtureEditPage() {
     return (
       <p className="text-slate-500">
         Missing <code className="text-accent">appId</code> or <code className="text-accent">matchKey</code>.{' '}
-        <Link to="/fixtures" className="text-accent underline">
+        <Link to="fixtures" className="text-accent underline">
           Back to list
         </Link>
       </p>
@@ -83,7 +83,7 @@ export function FixtureEditPage() {
   return (
     <div className="space-y-6">
       <header>
-        <Link to="/fixtures" className="text-xs text-accent hover:underline">
+        <Link to="fixtures" className="text-xs text-accent hover:underline">
           ← Fixtures
         </Link>
         <h1 className="page-title mt-2">

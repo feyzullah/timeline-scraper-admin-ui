@@ -35,7 +35,7 @@ export default function App() {
               <Route path="ops" element={<OpsConfigPage />} />
               <Route path="api-map" element={<ApiMapPage />} />
               <Route path="settings" element={<SettingsPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="." replace />} />
             </Route>
           </Routes>
         </BrowserRouter>

@@ -2,19 +2,16 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { DeliveryPendingRow, OpenRequestRow } from '../api/types';
 import { useScrapperClient } from '../api/client';
-import { useSettings } from '../context/SettingsContext';
 
 type Tab = 'active' | 'delivery';
 
 export function RequestsPage() {
   const [tab, setTab] = useState<Tab>('active');
   const { get, apiBaseUrl } = useScrapperClient();
-  const { defaultAppId } = useSettings();
 
   const active = useQuery({
-    queryKey: ['admin', 'requests', apiBaseUrl, defaultAppId],
-    queryFn: () =>
-      get<{ items: OpenRequestRow[] }>('/admin/v1/requests', { appId: defaultAppId }),
+    queryKey: ['admin', 'requests', apiBaseUrl],
+    queryFn: () => get<{ items: OpenRequestRow[] }>('/admin/v1/requests'),
     refetchInterval: 15_000,
     enabled: tab === 'active',
     retry: false

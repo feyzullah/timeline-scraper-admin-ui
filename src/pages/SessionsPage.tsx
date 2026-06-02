@@ -2,16 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import type { SessionsListResponse } from '../api/types';
 import { useScrapperClient } from '../api/client';
-import { useSettings } from '../context/SettingsContext';
 
 export function SessionsPage() {
   const { get, apiBaseUrl } = useScrapperClient();
-  const { defaultAppId } = useSettings();
 
   const sessions = useQuery({
-    queryKey: ['admin', 'sessions', apiBaseUrl, defaultAppId],
-    queryFn: () =>
-      get<SessionsListResponse>('/admin/v1/sessions', { appId: defaultAppId, limit: 100 }),
+    queryKey: ['admin', 'sessions', apiBaseUrl],
+    queryFn: () => get<SessionsListResponse>('/admin/v1/sessions', { limit: 100 }),
     refetchInterval: 20_000,
     retry: false
   });
@@ -22,7 +19,7 @@ export function SessionsPage() {
     <div className="space-y-6">
       <header>
         <h1 className="page-title">Sessions</h1>
-        <p className="text-slate-500 text-sm mt-1">Match sessions for appId {defaultAppId}</p>
+        <p className="text-slate-500 text-sm mt-1">All match sessions (every appId)</p>
       </header>
 
       {sessions.error ? (
@@ -113,7 +110,7 @@ export function SessionsPage() {
 
       <p className="text-xs text-slate-600">
         Full session JSON: <code className="text-accent/80">GET /admin/v1/sessions/:appId/:matchKey</code> — detail UI coming next.{' '}
-        <Link to="/api-map" className="text-accent underline">
+        <Link to="api-map" className="text-accent underline">
           API map
         </Link>
       </p>

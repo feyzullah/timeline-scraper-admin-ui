@@ -89,11 +89,11 @@ Deploys into namespace **`timeline-scraper`** next to the scrapper API.
 | `k8s/ingress.example.yaml` | Optional external host |
 
 ```bash
-# After timeline-scraper is running and timeline-scraper-admin-ui-env exists:
-envsubst '${IMAGE_TAG}' < k8s/deployment.yaml | kubectl apply -f -
+# One-time: apply deployment + service (image tag updated by CI via kubectl set image)
+kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml -n timeline-scraper
 ```
 
-**GitHub Actions:** `.github/workflows/ci.yml` (lint + build), `.github/workflows/deploy.yml` (push `main` → registry + k3s). Uses the same `k3s` environment secrets as timeline-scraper (`REGISTRY_*`, `KUBE_CONFIG`).
+**GitHub Actions:** push `main` → `docker build/push` (`sha-$GITHUB_SHA` + `latest`) → `kubectl set image deployment/timeline-scraper-admin-ui …`. Uses the same `k3s` environment secrets as timeline-scraper (`REGISTRY_*`, `KUBE_CONFIG`).
 
-**Settings in prod:** leave API base URL at the default (`/sports-data-admin/scrapper-api`). Admin API key in the UI can stay empty when the server injects auth via `SCRAPPER_ADMIN_API_KEY`.
+**Settings in prod:** API URL and Bearer auth come from the server — `SCRAPPER_UPSTREAM` and `SCRAPPER_ADMIN_API_KEY` in secret `timeline-scraper-admin-ui-env`. The browser calls same-origin `{APP_BASE_PATH}/scrapper-api`; Node proxies to the scrapper Service.

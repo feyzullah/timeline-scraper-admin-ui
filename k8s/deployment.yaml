@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: scrapper-admin-ui
+  name: timeline-scraper-admin-ui
   namespace: timeline-scraper
 spec:
   replicas: 1
@@ -17,8 +17,8 @@ spec:
         - name: registry-pull-secret
 
       containers:
-        - name: scrapper-admin-ui
-          image: ${IMAGE_TAG}
+        - name: timeline-scraper-admin-ui
+          image: dmaxcasino.com/scrapper-admin-ui:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80

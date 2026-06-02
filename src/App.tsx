@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { routerBasename } from './lib/appPaths';
 import { SettingsProvider } from './context/SettingsContext';
 import { Layout } from './components/Layout';
 import { DashboardPage } from './pages/DashboardPage';
@@ -22,7 +23,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <SettingsProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={routerBasename}>
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<DashboardPage />} />

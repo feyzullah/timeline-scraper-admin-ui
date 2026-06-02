@@ -1,1 +1,2 @@
 server.mjs text eol=lf
+shared/*.mjs text eol=lf

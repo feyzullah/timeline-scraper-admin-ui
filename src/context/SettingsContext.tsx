@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode
 } from 'react';
+import { appBasePath, defaultScrapperApiBase } from '../lib/appPaths';
 
 const LS_BASE = 'scrapper-admin:apiBaseUrl';
 const LS_KEY = 'scrapper-admin:adminApiKey';
@@ -25,10 +26,7 @@ type SettingsContextValue = Settings & {
   resetToDefaults: () => void;
 };
 
-// Relative path keeps same-origin with the Vite dev server (localhost vs 127.0.0.1 safe).
-const defaultBase =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SCRAPPER_API_BASE_URL) ||
-  '/scrapper-api';
+const defaultBase = defaultScrapperApiBase();
 
 const defaultKey =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SCRAPPER_ADMIN_API_KEY) || '';
@@ -38,7 +36,15 @@ function normalizeApiBaseUrl(url: string | null): string {
   const t = (url || '').trim();
   if (!t) return defaultBase;
   if (/^https?:\/\/(?:127\.0\.0\.1|localhost):5174\/scrapper-api\/?$/i.test(t)) {
-    return '/scrapper-api';
+    return defaultBase;
+  }
+  if (appBasePath) {
+    const escaped = appBasePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(
+      `^https?:\\/\\/(?:127\\.0\\.0\\.1|localhost):5174${escaped}\\/scrapper-api\\/?$`,
+      'i'
+    );
+    if (re.test(t)) return defaultBase;
   }
   return t;
 }

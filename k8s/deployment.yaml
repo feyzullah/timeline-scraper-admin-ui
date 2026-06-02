@@ -28,6 +28,11 @@ spec:
             - secretRef:
                 name: timeline-scraper-admin-ui-env
 
+          env:
+            # Must match VITE_APP_BASE_PATH used at image build time.
+            - name: APP_BASE_PATH
+              value: "/sports-data-admin"
+
           resources:
             requests:
               memory: 64Mi

@@ -18,9 +18,9 @@ npm run bootstrap:env   # writes .env from timeline-scraper/.env (or cp .env.exa
 npm run dev
 ```
 
-Open **http://localhost:5174**. Defaults come from `.env` (`VITE_SCRAPPER_*`); **Settings** can override (stored in localStorage).
+Open **http://localhost:5174/sports-data-admin/** (when `VITE_APP_BASE_PATH=/sports-data-admin`). Defaults come from `.env`; **Settings** can override (stored in localStorage).
 
-- **API base URL** — use `/scrapper-api` in dev (same-origin; Vite proxy → scrapper `:4011`)
+- **API base URL** — defaults to `{VITE_APP_BASE_PATH}/scrapper-api` (same-origin; Vite/Node proxy → scrapper `:4011`)
 - **Admin API key** — same as `SCRAPPER_ADMIN_API_KEY` on timeline-scraper
 
 Start timeline-scraper first (`npm start` in `timeline-scraper/`).
@@ -44,7 +44,20 @@ See `docs/ADMIN_API.md` and `timeline-scrapper/src/application/adminRoutes.js`.
 
 ## Vite dev proxy
 
-`vite.config.ts` proxies `/scrapper-api` → `http://127.0.0.1:4011`. For same-origin dev, set base URL to `http://localhost:5174/scrapper-api`.
+`vite.config.ts` proxies `{VITE_APP_BASE_PATH}/scrapper-api` → `http://127.0.0.1:4011`.
+
+## Base path
+
+Set **`VITE_APP_BASE_PATH`** (no trailing slash) at build time — default **`/sports-data-admin`**. This configures:
+
+| Layer | Setting |
+|-------|---------|
+| Vite build | `base` → assets under `/sports-data-admin/` |
+| React Router | `basename` |
+| API default | `/sports-data-admin/scrapper-api` |
+| Node server (prod) | `APP_BASE_PATH` env — must match the build value |
+
+Docker / CI: `VITE_APP_BASE_PATH` and `APP_BASE_PATH` build args. k8s: `APP_BASE_PATH` in `k8s/deployment.yaml`.
 
 ## Stack
 
@@ -53,15 +66,17 @@ React 19 · Vite 6 · TypeScript · Tailwind · TanStack Query · React Router 6
 ## Docker (local)
 
 ```bash
-docker build -t scrapper-admin-ui .
+docker build -t scrapper-admin-ui \
+  --build-arg VITE_APP_BASE_PATH=/sports-data-admin \
+  --build-arg APP_BASE_PATH=/sports-data-admin .
 docker run --rm -p 8080:80 \
+  -e APP_BASE_PATH=/sports-data-admin \
   -e SCRAPPER_UPSTREAM=http://host.docker.internal:4011 \
   -e SCRAPPER_ADMIN_API_KEY=your-admin-key \
   scrapper-admin-ui
-# Node server: static dist/ + /scrapper-api proxy (server.mjs).
 ```
 
-Open http://localhost:8080 — API base `/scrapper-api` (Node proxy → scrapper).
+Open http://localhost:8080/sports-data-admin/
 
 ## Kubernetes (k3s, same cluster as timeline-scraper)
 
@@ -81,4 +96,4 @@ kubectl apply -f k8s/service.yaml -n timeline-scraper
 
 **GitHub Actions:** `.github/workflows/ci.yml` (lint + build), `.github/workflows/deploy.yml` (push `main` → registry + k3s). Uses the same `k3s` environment secrets as timeline-scraper (`REGISTRY_*`, `KUBE_CONFIG`).
 
-**Settings in prod:** leave API base URL as `/scrapper-api`. Admin API key in the UI can stay empty when the server injects auth via `SCRAPPER_ADMIN_API_KEY`; override in Settings only for debugging.
+**Settings in prod:** leave API base URL at the default (`/sports-data-admin/scrapper-api`). Admin API key in the UI can stay empty when the server injects auth via `SCRAPPER_ADMIN_API_KEY`.

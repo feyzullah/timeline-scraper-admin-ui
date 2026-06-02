@@ -1,4 +1,5 @@
 import { Button } from '../components/Button';
+import { defaultScrapperApiBase } from '../lib/appPaths';
 import { useSettings } from '../context/SettingsContext';
 
 export function SettingsPage() {
@@ -26,10 +27,10 @@ export function SettingsPage() {
             className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm font-mono focus:border-accent/40 outline-none"
             value={apiBaseUrl}
             onChange={(e) => setApiBaseUrl(e.target.value)}
-            placeholder="/scrapper-api"
+            placeholder={defaultScrapperApiBase()}
           />
           <span className="text-[10px] text-slate-600">
-            Dev default: <code className="text-accent/70">/scrapper-api</code> (Vite → :4011). Use Settings → Reset if fetches fail.
+            Default: <code className="text-accent/70">{defaultScrapperApiBase()}</code> (same-origin proxy → scrapper). Use Reset if fetches fail.
           </span>
         </label>
 

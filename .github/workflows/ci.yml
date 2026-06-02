@@ -24,18 +24,26 @@ jobs:
 
       - name: Build
         env:
-          VITE_SCRAPPER_API_BASE_URL: /scrapper-api
+          VITE_APP_BASE_PATH: /sports-data-admin
         run: npm run build
 
       - name: Verify Docker image
         run: |
-          docker build -t scrapper-admin-ui:ci .
+          docker build -t scrapper-admin-ui:ci \
+            --build-arg VITE_APP_BASE_PATH=/sports-data-admin \
+            --build-arg APP_BASE_PATH=/sports-data-admin \
+            .
           docker run --rm --entrypoint sh scrapper-admin-ui:ci -c \
             'test -f /app/server.mjs && test -f /app/dist/index.html'
-          CID=$(docker run -d -e SCRAPPER_UPSTREAM=http://127.0.0.1:9 -e SCRAPPER_ADMIN_API_KEY=ci scrapper-admin-ui:ci)
+          CID=$(docker run -d \
+            -e APP_BASE_PATH=/sports-data-admin \
+            -e SCRAPPER_UPSTREAM=http://127.0.0.1:9 \
+            -e SCRAPPER_ADMIN_API_KEY=ci \
+            scrapper-admin-ui:ci)
           trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
           for i in $(seq 1 30); do
             if docker exec "$CID" node -e "fetch('http://127.0.0.1/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
+              docker exec "$CID" node -e "fetch('http://127.0.0.1/sports-data-admin/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
               exit 0
             fi
             sleep 1

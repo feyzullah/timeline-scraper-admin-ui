@@ -1,8 +1,8 @@
 # Optional — expose admin UI outside the cluster (adjust host + ingress class).
 # Apply after Service is up: kubectl apply -f k8s/ingress.example.yaml -n timeline-scraper
 #
-# UI talks to scrapper via same-origin /scrapper-api (nginx in the UI pod).
-# Open https://scrapper-admin.example.com and leave Settings → API base URL as /scrapper-api.
+# UI is mounted at /sports-data-admin (see VITE_APP_BASE_PATH / APP_BASE_PATH).
+# API: same-origin /sports-data-admin/scrapper-api (Node proxy in the UI pod).
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -15,7 +15,7 @@ spec:
     - host: scrapper-admin.example.com
       http:
         paths:
-          - path: /
+          - path: /sports-data-admin
             pathType: Prefix
             backend:
               service:

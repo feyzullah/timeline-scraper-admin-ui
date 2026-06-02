@@ -1,17 +1,19 @@
 /**
- * Production server: static Vite build + /scrapper-api reverse proxy.
- * Env: PORT (default 80), SCRAPPER_UPSTREAM, SCRAPPER_ADMIN_API_KEY.
+ * Production server: static Vite build + scrapper API reverse proxy.
+ * Env: PORT, APP_BASE_PATH, SCRAPPER_UPSTREAM, SCRAPPER_ADMIN_API_KEY.
  */
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { normalizeBasePath, scrapperApiPrefix } from './shared/appPaths.mjs';
 
 const DIST = join(fileURLToPath(new URL('.', import.meta.url)), 'dist');
 const PORT = Number(process.env.PORT || 80);
 const UPSTREAM = (process.env.SCRAPPER_UPSTREAM || 'http://timeline-scraper:4011').replace(/\/$/, '');
 const ADMIN_API_KEY = process.env.SCRAPPER_ADMIN_API_KEY || '';
-const API_PREFIX = '/scrapper-api';
+const APP_BASE = normalizeBasePath(process.env.APP_BASE_PATH || '/sports-data-admin');
+const API_PREFIX = scrapperApiPrefix(APP_BASE);
 
 const MIME = {
   '.css': 'text/css; charset=utf-8',
@@ -46,8 +48,8 @@ function readBody(req) {
   });
 }
 
-function distPath(urlPath) {
-  const decoded = decodeURIComponent(urlPath.split('?')[0] || '/');
+function distPath(relativePath) {
+  const decoded = decodeURIComponent(relativePath.split('?')[0] || '/');
   let rel = normalize(decoded).replace(/^(\.\.[/\\])+/, '');
   if (rel === '/' || rel === '.') {
     return join(DIST, 'index.html');
@@ -72,6 +74,20 @@ function sendFile(res, filePath, { cache = false } = {}) {
     res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
   }
   stream.pipe(res);
+}
+
+function redirect(res, location) {
+  res.statusCode = 302;
+  res.setHeader('Location', location);
+  res.end();
+}
+
+/** Strip APP_BASE from pathname; null if request is outside the mount. */
+function stripAppBase(pathname) {
+  if (!APP_BASE) return pathname;
+  if (pathname === APP_BASE) return '/';
+  if (pathname.startsWith(`${APP_BASE}/`)) return pathname.slice(APP_BASE.length) || '/';
+  return null;
 }
 
 async function proxyToScrapper(req, res, pathname, search) {
@@ -111,8 +127,8 @@ async function proxyToScrapper(req, res, pathname, search) {
   res.end(body);
 }
 
-function serveStatic(req, res, pathname) {
-  const filePath = distPath(pathname);
+function serveStatic(res, relativePath) {
+  const filePath = distPath(relativePath);
   if (!filePath) {
     res.statusCode = 403;
     res.end('Forbidden');
@@ -125,7 +141,7 @@ function serveStatic(req, res, pathname) {
     return;
   }
 
-  if (extname(pathname)) {
+  if (extname(relativePath)) {
     res.statusCode = 404;
     res.end('Not Found');
     return;
@@ -143,22 +159,37 @@ function serveStatic(req, res, pathname) {
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+  const { pathname, search } = url;
 
-  if (url.pathname === '/healthz') {
+  if (pathname === '/healthz') {
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.end('ok');
     return;
   }
 
-  if (url.pathname === API_PREFIX || url.pathname.startsWith(`${API_PREFIX}/`)) {
-    await proxyToScrapper(req, res, url.pathname, url.search);
+  if (pathname === API_PREFIX || pathname.startsWith(`${API_PREFIX}/`)) {
+    await proxyToScrapper(req, res, pathname, search);
     return;
   }
 
-  serveStatic(req, res, url.pathname);
+  if (APP_BASE && pathname === '/') {
+    redirect(res, `${APP_BASE}/`);
+    return;
+  }
+
+  const relative = stripAppBase(pathname);
+  if (relative === null) {
+    res.statusCode = 404;
+    res.end('Not Found');
+    return;
+  }
+
+  serveStatic(res, relative);
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`scrapper-admin-ui listening on :${PORT} upstream=${UPSTREAM}`);
+  console.log(
+    `scrapper-admin-ui listening on :${PORT} base=${APP_BASE || '/'} api=${API_PREFIX} upstream=${UPSTREAM}`
+  );
 });

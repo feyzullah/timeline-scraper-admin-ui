@@ -1,0 +1,9 @@
+# Secret `timeline-scraper-admin-ui-env` (namespace timeline-scraper).
+# All keys loaded via envFrom in k8s/deployment.yaml.
+#
+#   kubectl create secret generic timeline-scraper-admin-ui-env \
+#     --from-env-file=timeline-scraper-admin-ui-env.production \
+#     -n timeline-scraper
+
+SCRAPPER_ADMIN_API_KEY=
+SCRAPPER_UPSTREAM=http://timeline-scraper:4011

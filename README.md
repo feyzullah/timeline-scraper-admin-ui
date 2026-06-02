@@ -49,3 +49,35 @@ See `docs/ADMIN_API.md` and `timeline-scrapper/src/application/adminRoutes.js`.
 ## Stack
 
 React 19 · Vite 6 · TypeScript · Tailwind · TanStack Query · React Router 6
+
+## Docker (local)
+
+```bash
+docker build -t scrapper-admin-ui .
+docker run --rm -p 8080:80 \
+  -e SCRAPPER_UPSTREAM=http://host.docker.internal:4011 \
+  -e SCRAPPER_ADMIN_API_KEY=your-admin-key \
+  scrapper-admin-ui
+```
+
+Open http://localhost:8080 — API base `/scrapper-api` (nginx → scrapper).
+
+## Kubernetes (k3s, same cluster as timeline-scraper)
+
+Deploys into namespace **`timeline-scraper`** next to the scrapper API.
+
+| Source | What |
+|--------|------|
+| Secret `timeline-scraper-admin-ui-env` | `SCRAPPER_ADMIN_API_KEY`, `SCRAPPER_UPSTREAM` (see `k8s/timeline-scraper-admin-ui-env.example`) |
+| `k8s/service.yaml` | ClusterIP port 80 |
+| `k8s/ingress.example.yaml` | Optional external host |
+
+```bash
+# After timeline-scraper is running and timeline-scraper-admin-ui-env exists:
+envsubst '${IMAGE_TAG}' < k8s/deployment.yaml | kubectl apply -f -
+kubectl apply -f k8s/service.yaml -n timeline-scraper
+```
+
+**GitHub Actions:** `.github/workflows/ci.yml` (lint + build), `.github/workflows/deploy.yml` (push `main` → registry + k3s). Uses the same `k3s` environment secrets as timeline-scraper (`REGISTRY_*`, `KUBE_CONFIG`).
+
+**Settings in prod:** leave API base URL as `/scrapper-api`. Admin API key in the UI can stay empty when nginx injects auth; override in Settings only for debugging.

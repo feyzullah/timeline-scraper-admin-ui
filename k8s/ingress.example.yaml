@@ -1,0 +1,24 @@
+# Optional — expose admin UI outside the cluster (adjust host + ingress class).
+# Apply after Service is up: kubectl apply -f k8s/ingress.example.yaml -n timeline-scraper
+#
+# UI talks to scrapper via same-origin /scrapper-api (nginx in the UI pod).
+# Open https://scrapper-admin.example.com and leave Settings → API base URL as /scrapper-api.
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: scrapper-admin-ui
+  namespace: timeline-scraper
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: scrapper-admin.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: scrapper-admin-ui
+                port:
+                  number: 80

@@ -6,24 +6,24 @@ import { useSettings } from '../context/SettingsContext';
 export function SettingsPage() {
   const {
     apiBaseUrl,
-    adminApiKey,
+    uiAccessKey,
     setApiBaseUrl,
-    saveAdminApiKey,
+    saveUiAccessKey,
     resetToDefaults,
     apiBaseFromServer
   } = useSettings();
 
-  const [draftKey, setDraftKey] = useState(adminApiKey);
+  const [draftKey, setDraftKey] = useState(uiAccessKey);
   const [keySaved, setKeySaved] = useState(false);
 
   useEffect(() => {
-    setDraftKey(adminApiKey);
-  }, [adminApiKey]);
+    setDraftKey(uiAccessKey);
+  }, [uiAccessKey]);
 
-  const keyDirty = draftKey !== adminApiKey;
+  const keyDirty = draftKey !== uiAccessKey;
 
   function handleSaveKey() {
-    saveAdminApiKey(draftKey);
+    saveUiAccessKey(draftKey);
     setKeySaved(true);
     window.setTimeout(() => setKeySaved(false), 2000);
   }
@@ -34,8 +34,8 @@ export function SettingsPage() {
         <h1 className="page-title">Settings</h1>
         <p className="text-slate-500 text-sm mt-1">
           {apiBaseFromServer
-            ? 'API calls go to this UI server, which proxies to timeline-scraper (SCRAPPER_UPSTREAM secret).'
-            : 'Dev: API key is saved to browser localStorage when you click Save.'}
+            ? 'API calls go to this UI server. You authenticate with the UI access key; the server uses a separate scraper key from k8s secrets.'
+            : 'Dev: UI access key is saved to browser localStorage when you click Save.'}
         </p>
       </header>
 
@@ -66,7 +66,7 @@ export function SettingsPage() {
         </label>
 
         <div className="block space-y-1.5">
-          <span className="text-xs text-slate-500 uppercase tracking-wider">Admin API key</span>
+          <span className="text-xs text-slate-500 uppercase tracking-wider">UI access key</span>
           <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="password"
@@ -76,7 +76,7 @@ export function SettingsPage() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && keyDirty) handleSaveKey();
               }}
-              placeholder="SCRAPPER_ADMIN_API_KEY (if not in k8s secret)"
+              placeholder="ADMIN_UI_API_KEY"
               autoComplete="off"
             />
             <Button
@@ -89,9 +89,9 @@ export function SettingsPage() {
             </Button>
           </div>
           <span className="text-[10px] text-slate-600 block">
-            {adminApiKey
-              ? 'Key saved in this browser (used when SCRAPPER_ADMIN_API_KEY is not set on the server).'
-              : 'Optional in prod if the k8s secret already sets SCRAPPER_ADMIN_API_KEY.'}
+            {uiAccessKey
+              ? 'Key saved in this browser. Must match ADMIN_UI_API_KEY in the admin-ui k8s secret.'
+              : 'Required in prod. Copy ADMIN_UI_API_KEY from the timeline-scraper-admin-ui-env secret.'}
           </span>
         </div>
 

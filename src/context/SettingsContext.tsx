@@ -15,12 +15,13 @@ const LS_KEY = 'scrapper-admin:adminApiKey';
 
 export type Settings = {
   apiBaseUrl: string;
-  adminApiKey: string;
+  /** Bearer token for this UI server's /api/* (ADMIN_UI_API_KEY in prod). */
+  uiAccessKey: string;
 };
 
 type SettingsContextValue = Settings & {
   setApiBaseUrl: (v: string) => void;
-  saveAdminApiKey: (key: string) => void;
+  saveUiAccessKey: (key: string) => void;
   resetToDefaults: () => void;
   /** Prod: apiBaseUrl is the same-origin proxy path from the UI server. */
   apiBaseFromServer: boolean;
@@ -28,8 +29,8 @@ type SettingsContextValue = Settings & {
 
 const defaultBase = defaultScrapperApiBase();
 
-const defaultKey =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SCRAPPER_ADMIN_API_KEY) || '';
+const defaultUiAccessKey =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ADMIN_UI_API_KEY) || '';
 
 function isStaleApiBase(url: string): boolean {
   const t = url.trim();
@@ -59,12 +60,12 @@ function load(): Settings {
   try {
     return {
       apiBaseUrl: normalizeApiBaseUrl(localStorage.getItem(LS_BASE)),
-      adminApiKey: localStorage.getItem(LS_KEY) ?? defaultKey,
+      uiAccessKey: localStorage.getItem(LS_KEY) ?? defaultUiAccessKey,
     };
   } catch {
     return {
       apiBaseUrl: defaultBase,
-      adminApiKey: defaultKey,
+      uiAccessKey: defaultUiAccessKey,
     };
   }
 }
@@ -103,8 +104,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [apiBaseFromServer]
   );
 
-  const saveAdminApiKey = useCallback((key: string) => {
-    setState((s) => ({ ...s, adminApiKey: key }));
+  const saveUiAccessKey = useCallback((key: string) => {
+    setState((s) => ({ ...s, uiAccessKey: key }));
     try {
       localStorage.setItem(LS_KEY, key);
     } catch {
@@ -115,7 +116,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const resetToDefaults = useCallback(() => {
     setState({
       apiBaseUrl: defaultScrapperApiBase(),
-      adminApiKey: defaultKey,
+      uiAccessKey: defaultUiAccessKey,
     });
     try {
       if (!apiBaseFromServer) {
@@ -131,11 +132,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     () => ({
       ...state,
       setApiBaseUrl,
-      saveAdminApiKey,
+      saveUiAccessKey,
       resetToDefaults,
       apiBaseFromServer,
     }),
-    [state, setApiBaseUrl, saveAdminApiKey, resetToDefaults, apiBaseFromServer]
+    [state, setApiBaseUrl, saveUiAccessKey, resetToDefaults, apiBaseFromServer]
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

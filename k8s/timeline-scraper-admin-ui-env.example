@@ -5,6 +5,11 @@
 #     --from-env-file=timeline-scraper-admin-ui-env.production \
 #     -n timeline-scraper
 
+# Browser → UI server (/sports-data-admin/api/*). Operators paste this into Settings.
+ADMIN_UI_API_KEY=
+
+# UI server → timeline-scraper. Must match SCRAPPER_ADMIN_API_KEY on timeline-scraper-env.
 SCRAPPER_ADMIN_API_KEY=
+
 # In-cluster scrapper root — UI forwards /sports-data-admin/api/* here unchanged.
 SCRAPPER_UPSTREAM=http://timeline-scraper:4011

@@ -28,7 +28,6 @@ jobs:
           docker build \
             --build-arg VITE_APP_BASE_PATH=/sports-data-admin \
             --build-arg APP_BASE_PATH=/sports-data-admin \
-            --build-arg VITE_SCRAPPER_ADMIN_API_KEY= \
             -t "$IMAGE:sha-${{ github.sha }}" \
             -t "$IMAGE:latest" \
             .
@@ -45,7 +44,8 @@ jobs:
           CID=$(docker run -d \
             -e APP_BASE_PATH=/sports-data-admin \
             -e SCRAPPER_UPSTREAM=http://127.0.0.1:9 \
-            -e SCRAPPER_ADMIN_API_KEY=ci \
+            -e ADMIN_UI_API_KEY=ci-ui \
+            -e SCRAPPER_ADMIN_API_KEY=ci-scraper \
             "$IMAGE")
           trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
           for i in $(seq 1 30); do

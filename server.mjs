@@ -12,7 +12,8 @@ const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const DIST = join(ROOT, 'dist');
 const PORT = Number(process.env.PORT || 80);
 const UPSTREAM = (process.env.SCRAPPER_UPSTREAM || 'http://timeline-scraper:4011').replace(/\/$/, '');
-const ADMIN_API_KEY = process.env.SCRAPPER_ADMIN_API_KEY || '';
+const UI_API_KEY = process.env.ADMIN_UI_API_KEY || '';
+const SCRAPPER_API_KEY = process.env.SCRAPPER_ADMIN_API_KEY || '';
 const APP_BASE = normalizeBasePath(process.env.APP_BASE_PATH || '/sports-data-admin');
 const CLIENT_API_BASE = uiApiMount(APP_BASE);
 
@@ -134,7 +135,8 @@ const server = createServer(async (req, res) => {
       search,
       matchedPrefix: apiMount,
       upstream: UPSTREAM,
-      adminApiKey: ADMIN_API_KEY,
+      uiApiKey: UI_API_KEY,
+      scraperApiKey: SCRAPPER_API_KEY,
     });
     return;
   }
@@ -158,6 +160,6 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(
-    `scrapper-admin-ui :${PORT} ui=${CLIENT_API_BASE}/* → ${UPSTREAM}/* (APP_BASE=${APP_BASE || '/'})`
+    `scrapper-admin-ui :${PORT} ui=${CLIENT_API_BASE}/* → ${UPSTREAM}/* (APP_BASE=${APP_BASE || '/'} uiKey=${UI_API_KEY ? 'set' : 'off'} scraperKey=${SCRAPPER_API_KEY ? 'set' : 'off'})`
   );
 });

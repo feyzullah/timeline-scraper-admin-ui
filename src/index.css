@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  @apply bg-surface-950 text-slate-200;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(251, 191, 36, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(251, 191, 36, 0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-surface-900/80 backdrop-blur-md border border-white/5 shadow-panel;
+  }
+  .text-gradient {
+    @apply bg-gradient-to-r from-accent to-amber-200 bg-clip-text text-transparent;
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .touch-target {
+    @apply min-h-11 min-w-11 inline-flex items-center justify-center;
+  }
+  .page-title {
+    @apply text-xl sm:text-2xl font-semibold text-white tracking-tight;
+  }
+  .input-touch {
+    @apply w-full text-base sm:text-sm rounded-lg bg-black/30 border border-white/10 px-3 py-2.5 outline-none focus:border-accent/40;
+  }
+  .select-touch {
+    @apply w-full text-base sm:text-sm rounded-lg bg-black/30 border border-white/10 px-3 py-2.5 outline-none focus:border-accent/40;
+  }
+}

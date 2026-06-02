@@ -26,3 +26,9 @@ jobs:
         env:
           VITE_SCRAPPER_API_BASE_URL: /scrapper-api
         run: npm run build
+
+      - name: Verify Docker image
+        run: |
+          docker build -t scrapper-admin-ui:ci .
+          docker run --rm --entrypoint sh scrapper-admin-ui:ci -c \
+            'test -x /docker-entrypoint.d/99-scrapper-proxy-config.sh && test -f /etc/nginx/scrapper/default.conf.template'

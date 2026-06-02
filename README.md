@@ -18,10 +18,10 @@ npm run bootstrap:env   # writes .env from timeline-scraper/.env (or cp .env.exa
 npm run dev
 ```
 
-Open **http://localhost:5174/sports-data-admin/** (when `VITE_APP_BASE_PATH=/sports-data-admin`). Defaults come from `.env`; **Settings** can override (stored in localStorage).
+Open **http://localhost:5174/sports-data-admin/** and sign in with **`SCRAPPER_ADMIN_API_KEY`** (from `timeline-scraper/.env`). Operator/settler keys cannot sign in.
 
-- **API base URL** — defaults to `{VITE_APP_BASE_PATH}/api` (UI server proxies → `SCRAPPER_UPSTREAM`)
-- **UI access key** — `ADMIN_UI_API_KEY` from the admin-ui secret (browser → UI server). The UI server uses a separate `SCRAPPER_ADMIN_API_KEY` when calling timeline-scraper.
+- **Admin UI** — bootstrap admin key only
+- **Operator keys** — Mongo `api_keys` — settler WebSocket; create/revoke under **Operator keys** in the UI
 
 Start timeline-scraper first (`npm start` in `timeline-scraper/`).
 
@@ -85,7 +85,7 @@ Deploys into namespace **`timeline-scraper`** next to the scrapper API.
 
 | Source | What |
 |--------|------|
-| Secret `timeline-scraper-admin-ui-env` | `ADMIN_UI_API_KEY`, `SCRAPPER_ADMIN_API_KEY`, `SCRAPPER_UPSTREAM` (see `k8s/timeline-scraper-admin-ui-env.example`) |
+| Secret `timeline-scraper-admin-ui-env` | `SCRAPPER_UPSTREAM` only (see `k8s/timeline-scraper-admin-ui-env.example`) |
 | `k8s/service.yaml` | ClusterIP port 80 |
 | `k8s/ingress.example.yaml` | Optional external host |
 
@@ -97,4 +97,4 @@ kubectl apply -f k8s/service.yaml -n timeline-scraper
 
 **GitHub Actions:** push `main` → `docker build/push` (`sha-$GITHUB_SHA` + `latest`) → `kubectl set image deployment/timeline-scraper-admin-ui …`. Uses the same `k3s` environment secrets as timeline-scraper (`REGISTRY_*`, `KUBE_CONFIG`).
 
-**Settings in prod:** Browser sends `ADMIN_UI_API_KEY` (Settings) to `{APP_BASE}/api/admin/v1/…`. The UI pod validates that key, then proxies to `SCRAPPER_UPSTREAM/admin/v1/…` with `SCRAPPER_ADMIN_API_KEY` from the same secret (must match `timeline-scraper-env`).
+**Auth:** Browser sends `SCRAPPER_ADMIN_API_KEY` as Bearer on every `/api/*` call; timeline-scraper validates admin role. Operator keys are rejected (403) on admin REST and cannot open the UI.

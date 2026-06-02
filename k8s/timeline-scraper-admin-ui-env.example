@@ -5,11 +5,8 @@
 #     --from-env-file=timeline-scraper-admin-ui-env.production \
 #     -n timeline-scraper
 
-# Browser → UI server (/sports-data-admin/api/*). Operators paste this into Settings.
-ADMIN_UI_API_KEY=
-
-# UI server → timeline-scraper. Must match SCRAPPER_ADMIN_API_KEY on timeline-scraper-env.
-SCRAPPER_ADMIN_API_KEY=
-
-# In-cluster scrapper root — UI forwards /sports-data-admin/api/* here unchanged.
+# In-cluster scrapper root — UI forwards /sports-data-admin/api/* with the browser admin Bearer token.
 SCRAPPER_UPSTREAM=http://timeline-scraper:4011
+
+# Admin auth uses SCRAPPER_ADMIN_API_KEY on timeline-scraper (same secret as timeline-scraper-env).
+# Operator/settler keys live in Mongo api_keys — managed via admin UI, not stored here.

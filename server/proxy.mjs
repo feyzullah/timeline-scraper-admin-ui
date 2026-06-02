@@ -1,11 +1,12 @@
 /**
- * Forward UI-server /api/* requests to SCRAPPER_UPSTREAM (from k8s secret).
+ * Forward UI-server /api/* to SCRAPPER_UPSTREAM with the browser's Bearer token.
  *
- * Browser:  GET /sports-data-admin/api/admin/v1/stats  (Bearer ADMIN_UI_API_KEY)
- * Upstream:  GET http://timeline-scraper:4011/admin/v1/stats  (Bearer SCRAPPER_ADMIN_API_KEY)
+ * Browser:  GET /sports-data-admin/api/admin/v1/stats  (Bearer SCRAPPER_ADMIN_API_KEY)
+ * Upstream:  same path on timeline-scraper (admin key validated there)
  */
 
-import { requireUiApiKey } from './auth.mjs';
+import { readBearerToken } from './uiAuth.mjs';
+import { toScrapperApiPath } from '../shared/upstreamApiPath.mjs';
 
 const HOP_BY_HOP = new Set([
   'connection',
@@ -35,22 +36,28 @@ function readBody(req) {
  * @param {string} opts.search
  * @param {string} opts.matchedPrefix - e.g. /sports-data-admin/api
  * @param {string} opts.upstream - SCRAPPER_UPSTREAM without trailing slash
- * @param {string} opts.uiApiKey - ADMIN_UI_API_KEY (browser → this UI server)
- * @param {string} opts.scraperApiKey - SCRAPPER_ADMIN_API_KEY (this UI server → timeline-scraper)
+ * @param {boolean} opts.requireBearer - reject when Authorization missing
  */
-export async function proxyApiRequest(req, res, { pathname, search, matchedPrefix, upstream, uiApiKey, scraperApiKey }) {
-  if (!requireUiApiKey(req, res, uiApiKey)) return;
+export async function proxyApiRequest(req, res, { pathname, search, matchedPrefix, upstream, requireBearer = true }) {
+  const bearer = readBearerToken(req);
+  if (requireBearer && !bearer) {
+    res.statusCode = 401;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({ error: 'Unauthorized' }));
+    return;
+  }
 
   const apiPath = pathname.slice(matchedPrefix.length) || '/';
-  const target = `${upstream}${apiPath}${search}`;
+  const upstreamPath = toScrapperApiPath(apiPath);
+  const target = `${upstream}${upstreamPath}${search}`;
 
   const headers = new Headers();
   for (const [name, value] of Object.entries(req.headers)) {
-    if (!value || name === 'host' || name.toLowerCase() === 'authorization') continue;
+    if (!value || name === 'host') continue;
     headers.set(name, Array.isArray(value) ? value.join(', ') : value);
   }
-  if (scraperApiKey) {
-    headers.set('authorization', `Bearer ${scraperApiKey}`);
+  if (bearer && !headers.has('authorization')) {
+    headers.set('authorization', `Bearer ${bearer}`);
   }
 
   const init = { method: req.method, headers, redirect: 'manual' };

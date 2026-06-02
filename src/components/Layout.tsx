@@ -9,6 +9,7 @@ const nav = [
   { to: 'sessions', label: 'Sessions', icon: '▣' },
   { to: 'requests', label: 'Requests', icon: '◎' },
   { to: 'connections', label: 'Connections', icon: '⇄' },
+  { to: 'operator-keys', label: 'Operator keys', icon: '🔑' },
   { to: 'ops', label: 'Ops tuning', icon: '⚡' },
   { to: 'settings', label: 'Settings', icon: '⚙' },
 ] as const;
@@ -38,6 +39,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <div className="text-[10px] font-mono text-slate-500 mt-1 truncate" title={apiBaseUrl}>
           {apiBaseUrl}
         </div>
+        <div className="text-[10px] text-slate-600 mt-1">Admin</div>
       </div>
       <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
         {nav.map((item) => (

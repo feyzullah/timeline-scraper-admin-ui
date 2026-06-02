@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 
 export function joinApiUrl(baseUrl: string, path: string) {
@@ -30,14 +31,14 @@ export class ScrapperApiError extends Error {
 
 export async function scrapperRequest<T>(
   apiBaseUrl: string,
-  uiAccessKey: string,
+  adminApiKey: string,
   path: string,
   init: RequestInit = {}
 ): Promise<T> {
   const url = joinApiUrl(apiBaseUrl, path);
   const headers = new Headers(init.headers);
-  if (uiAccessKey) {
-    headers.set('Authorization', `Bearer ${uiAccessKey}`);
+  if (adminApiKey) {
+    headers.set('Authorization', `Bearer ${adminApiKey}`);
   }
   if (!headers.has('Content-Type') && init.body && typeof init.body === 'string') {
     headers.set('Content-Type', 'application/json');
@@ -61,48 +62,49 @@ export async function scrapperRequest<T>(
 }
 
 export function useScrapperClient() {
-  const { apiBaseUrl, uiAccessKey } = useSettings();
+  const { apiBaseUrl } = useSettings();
+  const { adminApiKey } = useAuth();
 
   const get = useCallback(
     <T,>(path: string, query?: Record<string, string | number | boolean | undefined | null>) => {
       const qs = query ? buildQuery(query) : '';
       const full = qs ? `${path}?${qs}` : path;
-      return scrapperRequest<T>(apiBaseUrl, uiAccessKey, full, { method: 'GET' });
+      return scrapperRequest<T>(apiBaseUrl, adminApiKey, full, { method: 'GET' });
     },
-    [apiBaseUrl, uiAccessKey]
+    [apiBaseUrl, adminApiKey]
   );
 
   const patch = useCallback(
     <T,>(path: string, body: unknown) =>
-      scrapperRequest<T>(apiBaseUrl, uiAccessKey, path, {
+      scrapperRequest<T>(apiBaseUrl, adminApiKey, path, {
         method: 'PATCH',
         body: JSON.stringify(body),
       }),
-    [apiBaseUrl, uiAccessKey]
+    [apiBaseUrl, adminApiKey]
   );
 
   const post = useCallback(
     <T,>(path: string, body: unknown = {}) =>
-      scrapperRequest<T>(apiBaseUrl, uiAccessKey, path, {
+      scrapperRequest<T>(apiBaseUrl, adminApiKey, path, {
         method: 'POST',
         body: JSON.stringify(body),
       }),
-    [apiBaseUrl, uiAccessKey]
+    [apiBaseUrl, adminApiKey]
   );
 
   const put = useCallback(
     <T,>(path: string, body: unknown) =>
-      scrapperRequest<T>(apiBaseUrl, uiAccessKey, path, {
+      scrapperRequest<T>(apiBaseUrl, adminApiKey, path, {
         method: 'PUT',
         body: JSON.stringify(body),
       }),
-    [apiBaseUrl, uiAccessKey]
+    [apiBaseUrl, adminApiKey]
   );
 
   const del = useCallback(
-    <T,>(path: string) => scrapperRequest<T>(apiBaseUrl, uiAccessKey, path, { method: 'DELETE' }),
-    [apiBaseUrl, uiAccessKey]
+    <T,>(path: string) => scrapperRequest<T>(apiBaseUrl, adminApiKey, path, { method: 'DELETE' }),
+    [apiBaseUrl, adminApiKey]
   );
 
-  return { get, patch, post, put, del, apiBaseUrl, uiAccessKey };
+  return { get, patch, post, put, del, apiBaseUrl, adminApiKey };
 }

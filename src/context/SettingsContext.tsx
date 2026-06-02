@@ -7,42 +7,32 @@ import {
   useState,
   type ReactNode
 } from 'react';
-import { appBasePath, defaultScrapperApiBase } from '../lib/appPaths';
+import { defaultScrapperApiBase } from '../lib/appPaths';
 import { getRuntimeConfig, hasRuntimeApiBase } from '../lib/runtimeConfig';
 
 const LS_BASE = 'scrapper-admin:apiBaseUrl';
-const LS_KEY = 'scrapper-admin:adminApiKey';
 
 export type Settings = {
   apiBaseUrl: string;
-  /** Bearer token for this UI server's /api/* (ADMIN_UI_API_KEY in prod). */
-  uiAccessKey: string;
 };
 
 type SettingsContextValue = Settings & {
   setApiBaseUrl: (v: string) => void;
-  saveUiAccessKey: (key: string) => void;
   resetToDefaults: () => void;
-  /** Prod: apiBaseUrl is the same-origin proxy path from the UI server. */
   apiBaseFromServer: boolean;
 };
 
 const defaultBase = defaultScrapperApiBase();
 
-const defaultUiAccessKey =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ADMIN_UI_API_KEY) || '';
-
 function isStaleApiBase(url: string): boolean {
   const t = url.trim();
   if (!t) return true;
   if (/^https?:\/\//i.test(t)) return true;
-  // Legacy proxy paths before /api mount.
   if (t.includes('/scrapper-api')) return true;
-  if (appBasePath && (t === '/api' || t === '/api/')) return true;
+  if (defaultScrapperApiBase() && (t === '/api' || t === '/api/')) return true;
   return false;
 }
 
-/** Legacy dev URLs break when Vite binds to localhost only or host ≠ page origin. */
 function normalizeApiBaseUrl(url: string | null): string {
   const runtime = getRuntimeConfig();
   if (runtime?.apiBaseUrl) return runtime.apiBaseUrl;
@@ -60,13 +50,9 @@ function load(): Settings {
   try {
     return {
       apiBaseUrl: normalizeApiBaseUrl(localStorage.getItem(LS_BASE)),
-      uiAccessKey: localStorage.getItem(LS_KEY) ?? defaultUiAccessKey,
     };
   } catch {
-    return {
-      apiBaseUrl: defaultBase,
-      uiAccessKey: defaultUiAccessKey,
-    };
+    return { apiBaseUrl: defaultBase };
   }
 }
 
@@ -99,30 +85,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setApiBaseUrl = useCallback(
     (v: string) => {
       if (apiBaseFromServer) return;
-      setState((s) => ({ ...s, apiBaseUrl: v.trim() || defaultScrapperApiBase() }));
+      setState({ apiBaseUrl: v.trim() || defaultScrapperApiBase() });
     },
     [apiBaseFromServer]
   );
 
-  const saveUiAccessKey = useCallback((key: string) => {
-    setState((s) => ({ ...s, uiAccessKey: key }));
-    try {
-      localStorage.setItem(LS_KEY, key);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
   const resetToDefaults = useCallback(() => {
-    setState({
-      apiBaseUrl: defaultScrapperApiBase(),
-      uiAccessKey: defaultUiAccessKey,
-    });
+    setState({ apiBaseUrl: defaultScrapperApiBase() });
     try {
       if (!apiBaseFromServer) {
         localStorage.removeItem(LS_BASE);
       }
-      localStorage.removeItem(LS_KEY);
     } catch {
       /* ignore */
     }
@@ -132,11 +105,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     () => ({
       ...state,
       setApiBaseUrl,
-      saveUiAccessKey,
       resetToDefaults,
       apiBaseFromServer,
     }),
-    [state, setApiBaseUrl, saveUiAccessKey, resetToDefaults, apiBaseFromServer]
+    [state, setApiBaseUrl, resetToDefaults, apiBaseFromServer]
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

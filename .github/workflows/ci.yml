@@ -38,15 +38,13 @@ jobs:
           CID=$(docker run -d \
             -e APP_BASE_PATH=/sports-data-admin \
             -e SCRAPPER_UPSTREAM=http://127.0.0.1:9 \
-            -e ADMIN_UI_API_KEY=ci-ui \
-            -e SCRAPPER_ADMIN_API_KEY=ci-scraper \
             scrapper-admin-ui:ci)
           trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
           for i in $(seq 1 30); do
             if docker exec "$CID" node -e "fetch('http://127.0.0.1/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
               docker exec "$CID" node -e "fetch('http://127.0.0.1/sports-data-admin/').then(r=>r.text()).then(t=>process.exit(t.includes('__SCRAPPER_ADMIN_CONFIG__')&&t.includes('/sports-data-admin/api')?0:1)).catch(()=>process.exit(1))"
-              docker exec "$CID" node -e "fetch('http://127.0.0.1/sports-data-admin/api/admin/v1/health/detail').then(r=>process.exit(r.status===401?0:1)).catch(()=>process.exit(1))"
-              docker exec "$CID" node -e "fetch('http://127.0.0.1/sports-data-admin/api/admin/v1/health/detail',{headers:{Authorization:'Bearer ci-ui'}}).then(r=>process.exit(r.status===502?0:1)).catch(()=>process.exit(1))"
+              docker exec "$CID" node -e "fetch('http://127.0.0.1/sports-data-admin/api/auth/me').then(r=>process.exit(r.status===401?0:1)).catch(()=>process.exit(1))"
+              docker exec "$CID" node -e "fetch('http://127.0.0.1/sports-data-admin/api/auth/me',{headers:{Authorization:'Bearer ci-admin'}}).then(r=>process.exit(r.status===502?0:1)).catch(()=>process.exit(1))"
               exit 0
             fi
             sleep 1

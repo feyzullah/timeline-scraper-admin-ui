@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { FixturesListResponse } from '../api/types';
 import { useScrapperClient } from '../api/client';
+import { fixtureEditHref } from '../lib/sessionPaths';
 
 const STATUS_LABELS: Record<string, string> = {
   no_data: 'No data',
@@ -189,7 +190,7 @@ export function FixturesPage() {
               {statusBadge(row.dataStatus)}
               <Link
                 className="text-accent text-sm font-medium min-h-11 inline-flex items-center px-2 -mr-2"
-                to={`fixtures/edit?appId=${encodeURIComponent(row.appId)}&matchKey=${encodeURIComponent(row.matchKey)}&source=${row.source}`}
+                to={fixtureEditHref(row.appId, row.matchKey, row.source)}
               >
                 Edit →
               </Link>
@@ -271,7 +272,7 @@ export function FixturesPage() {
                 <td className="p-3 text-right">
                   <Link
                     className="text-accent text-sm hover:underline"
-                    to={`fixtures/edit?appId=${encodeURIComponent(row.appId)}&matchKey=${encodeURIComponent(row.matchKey)}&source=${row.source}`}
+                    to={fixtureEditHref(row.appId, row.matchKey, row.source)}
                   >
                     Edit
                   </Link>

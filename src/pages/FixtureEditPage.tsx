@@ -6,7 +6,7 @@ import { FixtureFactsEditor } from '../components/FixtureFactsEditor';
 import { LinkProcessorPanel } from '../components/LinkProcessorPanel';
 import { JsonView } from '../components/JsonView';
 import { factsToForm } from '../lib/factsForm';
-import { sessionApiPath } from '../lib/sessionPaths';
+import { fixturesListHref, sessionApiPath } from '../lib/sessionPaths';
 
 function matchPath(appId: string, matchKey: string) {
   return `/admin/v1/matches/${encodeURIComponent(appId)}/${encodeURIComponent(matchKey)}`;
@@ -70,7 +70,7 @@ export function FixtureEditPage() {
     return (
       <p className="text-slate-500">
         Missing <code className="text-accent">appId</code> or <code className="text-accent">matchKey</code>.{' '}
-        <Link to="fixtures" className="text-accent underline">
+        <Link to={fixturesListHref()} className="text-accent underline">
           Back to list
         </Link>
       </p>
@@ -80,7 +80,7 @@ export function FixtureEditPage() {
   return (
     <div className="space-y-6">
       <header>
-        <Link to="fixtures" className="text-xs text-accent hover:underline">
+        <Link to={fixturesListHref()} className="text-xs text-accent hover:underline">
           ← Fixtures
         </Link>
         <h1 className="page-title mt-2">

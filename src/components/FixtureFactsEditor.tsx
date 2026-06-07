@@ -4,7 +4,12 @@ import { formToFactsPayload } from '../lib/factsForm';
 import { ScorePairInput } from './ScorePairInput';
 import { Button } from './Button';
 
-const STATUS_OPTIONS = ['NS', '1H', 'HT', '2H', 'FT', 'AET', 'PEN', 'PST', 'CANC', 'LIVE'];
+const STATUS_GROUPS: { label: string; options: string[] }[] = [
+  { label: 'Not started', options: ['NS', 'TBD'] },
+  { label: 'In play', options: ['1H', 'HT', '2H', 'LIVE', 'ET', 'BT', 'P', 'INT'] },
+  { label: 'Finished', options: ['FT', 'AET', 'PEN', 'AOT', 'OT'] },
+  { label: 'Other', options: ['PST', 'CANC', 'ABD', 'AWD', 'WO'] },
+];
 
 export function FixtureFactsEditor({
   initial,
@@ -69,8 +74,38 @@ export function FixtureFactsEditor({
     setForm((f) => ({
       ...f,
       halftime: { home, away },
+      fixtureStatusShort: 'HT',
     }));
   };
+
+  const setStatus = (fixtureStatusShort: string) => {
+    setForm((f) => ({ ...f, fixtureStatusShort }));
+  };
+
+  const setHtMilestone = () => {
+    setForm((f) => ({
+      ...f,
+      fixtureStatusShort: 'HT',
+      halftime:
+        f.halftime.home != null || f.halftime.away != null
+          ? f.halftime
+          : { ...f.goals },
+    }));
+  };
+
+  const setFtMilestone = () => {
+    setForm((f) => ({
+      ...f,
+      fixtureStatusShort: 'FT',
+      fulltime: { ...f.goals },
+    }));
+  };
+
+  const knownStatuses = new Set(STATUS_GROUPS.flatMap((g) => g.options));
+  const extraStatus =
+    form.fixtureStatusShort && !knownStatuses.has(form.fixtureStatusShort)
+      ? form.fixtureStatusShort
+      : null;
 
   return (
     <div className="space-y-8">
@@ -84,11 +119,20 @@ export function FixtureFactsEditor({
               value={form.fixtureStatusShort}
               onChange={(e) => setForm((f) => ({ ...f, fixtureStatusShort: e.target.value }))}
             >
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
+              {STATUS_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
+              {extraStatus ? (
+                <optgroup label="Current">
+                  <option value={extraStatus}>{extraStatus}</option>
+                </optgroup>
+              ) : null}
             </select>
           </label>
           <ScorePairInput
@@ -108,6 +152,21 @@ export function FixtureFactsEditor({
           />
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" type="button" onClick={() => setStatus('1H')}>
+            Set 1H
+          </Button>
+          <Button variant="ghost" type="button" onClick={setHtMilestone}>
+            Set HT
+          </Button>
+          <Button variant="ghost" type="button" onClick={() => setStatus('2H')}>
+            Set 2H
+          </Button>
+          <Button variant="ghost" type="button" onClick={() => setStatus('LIVE')}>
+            Set LIVE
+          </Button>
+          <Button variant="ghost" type="button" onClick={setFtMilestone}>
+            Set FT
+          </Button>
           <Button variant="ghost" type="button" onClick={applyFtFromGoals}>
             Copy goals → FT
           </Button>

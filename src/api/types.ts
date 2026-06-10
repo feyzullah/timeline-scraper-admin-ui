@@ -54,6 +54,7 @@ export type OpenRequestRow = {
   requestId: string;
   settlerSessionId?: string;
   sourceMatchId?: string;
+  betId?: string | null;
   marketType?: string;
   line?: number | null;
   outcomeKey?: string;

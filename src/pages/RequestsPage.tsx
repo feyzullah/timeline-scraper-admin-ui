@@ -34,6 +34,10 @@ export function RequestsPage() {
         <div>
           <h1 className="page-title">Requests</h1>
           <p className="text-slate-500 text-sm mt-1">Tracked legs and delivery queue</p>
+          <p className="text-slate-600 text-xs mt-1 max-w-2xl">
+            One row per unique market on a fixture (same marketType + line + outcome), not one row per bet.
+            Multiple coupons on the same selection share a single scrapper leg.
+          </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           {(['active', 'delivery'] as const).map((t) => (

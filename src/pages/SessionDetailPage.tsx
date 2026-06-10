@@ -38,6 +38,8 @@ function RequestLegTable({ legs }: { legs: SessionRequestLeg[] }) {
               <dd className="text-right">{leg.outcomeKey || '—'}</dd>
               <dt className="text-slate-600">Book id</dt>
               <dd className="text-right font-mono break-all">{leg.sourceMatchId || '—'}</dd>
+              <dt className="text-slate-600">Bet id</dt>
+              <dd className="text-right font-mono break-all">{leg.betId || '—'}</dd>
             </dl>
           </article>
         ))}
@@ -53,6 +55,7 @@ function RequestLegTable({ legs }: { legs: SessionRequestLeg[] }) {
               <th className="p-3 font-medium">Line</th>
               <th className="p-3 font-medium">Outcome</th>
               <th className="p-3 font-medium">Book id</th>
+              <th className="p-3 font-medium">Bet id</th>
             </tr>
           </thead>
           <tbody>
@@ -66,6 +69,9 @@ function RequestLegTable({ legs }: { legs: SessionRequestLeg[] }) {
                 <td className="p-3">{leg.line ?? '—'}</td>
                 <td className="p-3">{leg.outcomeKey || '—'}</td>
                 <td className="p-3 font-mono text-xs">{leg.sourceMatchId || '—'}</td>
+                <td className="p-3 font-mono text-[11px] text-slate-400 max-w-[8rem] truncate" title={leg.betId || ''}>
+                  {leg.betId ? leg.betId.slice(-8) : '—'}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -222,6 +228,9 @@ export function SessionDetailPage() {
                 {activeLegs.length} active / {legs.length} total
               </span>
             </div>
+            <p className="text-xs text-slate-600">
+              Deduped by market (type + line + outcome), not by bet — e.g. five OU 3.5 coupons share one leg.
+            </p>
             <RequestLegTable legs={legs} />
           </section>
 

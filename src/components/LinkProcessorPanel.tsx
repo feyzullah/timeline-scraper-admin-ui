@@ -14,8 +14,10 @@ type LinkProcessorResponse = {
     targetDate: string | null;
     extracted: {
       source: string;
-      fulltime: { home: number; away: number };
+      fulltime?: { home: number; away: number } | null;
+      current?: { home: number; away: number } | null;
       halftime?: { home: number; away: number };
+      fixtureStatusShort?: string | null;
       eventCount?: number;
     };
     facts: Record<string, unknown>;
@@ -139,6 +141,13 @@ export function LinkProcessorPanel({ appId, matchKey, kickoffUtc, onApplied }: P
             {result.preview.targetDate ? ` · ${result.preview.targetDate}` : ''}
             {result.preview.extracted?.source ? ` · ${result.preview.extracted.source}` : ''}
           </p>
+          {result.preview.extracted?.fixtureStatusShort ? (
+            <p className="text-sm text-slate-300">
+              Status:{' '}
+              <span className="font-mono text-white">{result.preview.extracted.fixtureStatusShort}</span>
+            </p>
+          ) : null}
+          {scoreLine('Current score', result.preview.extracted?.current)}
           {scoreLine('Full time', result.preview.extracted?.fulltime)}
           {scoreLine('Half time', result.preview.extracted?.halftime)}
           {result.preview.extracted?.eventCount ? (

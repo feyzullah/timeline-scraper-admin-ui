@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FixtureEvent, FixtureFactsForm } from '../lib/factsForm';
-import { formToFactsPayload } from '../lib/factsForm';
+import { formToFactsPayload, syncGoalsFromEvents } from '../lib/factsForm';
 import { ScorePairInput } from './ScorePairInput';
 import { Button } from './Button';
 
@@ -27,10 +27,12 @@ export function FixtureFactsEditor({
   const [form, setForm] = useState<FixtureFactsForm>(initial);
 
   const addGoal = () => {
-    setForm((f) => ({
-      ...f,
-      events: [...f.events, { type: 'goal', team: 'home', minute: 0 }],
-    }));
+    setForm((f) =>
+      syncGoalsFromEvents({
+        ...f,
+        events: [...f.events, { type: 'goal', team: 'home', minute: 0 }],
+      }),
+    );
   };
 
   const addCard = () => {
@@ -44,15 +46,17 @@ export function FixtureFactsEditor({
     setForm((f) => {
       const events = [...f.events];
       events[index] = next;
-      return { ...f, events };
+      return syncGoalsFromEvents({ ...f, events });
     });
   };
 
   const removeEvent = (index: number) => {
-    setForm((f) => ({
-      ...f,
-      events: f.events.filter((_, i) => i !== index),
-    }));
+    setForm((f) =>
+      syncGoalsFromEvents({
+        ...f,
+        events: f.events.filter((_, i) => i !== index),
+      }),
+    );
   };
 
   const applyFtFromGoals = () => {

@@ -36,6 +36,21 @@ export type FixtureFactsForm = {
   statistics: FixtureStatistics;
 };
 
+export function inferGoalsFromEvents(events: FixtureEvent[]): ScorePair {
+  let home = 0;
+  let away = 0;
+  for (const event of events) {
+    if (event.type !== 'goal') continue;
+    if (event.team === 'away') away += 1;
+    else home += 1;
+  }
+  return { home, away };
+}
+
+export function syncGoalsFromEvents(form: FixtureFactsForm): FixtureFactsForm {
+  return { ...form, goals: inferGoalsFromEvents(form.events) };
+}
+
 function numOrNull(v: string): number | null {
   const t = String(v).trim();
   if (t === '') return null;
@@ -100,10 +115,14 @@ export function factsToForm(facts: Record<string, unknown> | null | undefined): 
 }
 
 export function formToFactsPayload(form: FixtureFactsForm): Record<string, unknown> {
-  const goals = {
-    home: form.goals.home,
-    away: form.goals.away,
-  };
+  const inferredGoals = inferGoalsFromEvents(form.events);
+  const hasGoalEvents = form.events.some((e) => e.type === 'goal');
+  const goals = hasGoalEvents
+    ? inferredGoals
+    : {
+        home: form.goals.home,
+        away: form.goals.away,
+      };
 
   const score: Record<string, ScorePair> = {};
   if (form.halftime.home != null || form.halftime.away != null) {

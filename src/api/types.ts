@@ -111,7 +111,11 @@ export type FixturesListResponse = {
   items: FixtureListRow[];
   total: number;
   limit: number;
+  skip?: number;
+  offset?: number;
   dataStatus: string | null;
+  source?: string;
+  activeOnly?: boolean;
   dataStatusFilters?: string[];
 };
 

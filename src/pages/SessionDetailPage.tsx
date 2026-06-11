@@ -45,7 +45,7 @@ function RequestLegTable({ legs }: { legs: SessionRequestLeg[] }) {
         ))}
       </div>
 
-      <div className="hidden md:block overflow-auto">
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-left text-slate-500 border-b border-white/5">
             <tr>

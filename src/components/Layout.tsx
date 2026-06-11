@@ -103,7 +103,7 @@ export function Layout() {
         </>
       ) : null}
 
-      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+      <div className="flex-1 flex flex-col min-w-0">
         <header className="lg:hidden sticky top-0 z-30 glass border-b border-white/5 safe-top shrink-0">
           <div className="flex items-center gap-2 px-3 py-2.5">
             <button
@@ -121,7 +121,7 @@ export function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 min-h-0 overflow-auto overscroll-contain pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
+        <main className="flex-1 pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] lg:pb-8">
           <div className="max-w-[1600px] mx-auto p-4 sm:p-6 lg:p-8">
             <Outlet />
           </div>

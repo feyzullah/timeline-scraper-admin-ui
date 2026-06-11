@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { FixturesListResponse } from '../api/types';
 import { useScrapperClient } from '../api/client';
+import { DEFAULT_PAGE_SIZE, Pagination } from '../components/Pagination';
 import { fixtureEditHref } from '../lib/sessionPaths';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -46,6 +47,11 @@ function scoreLine(row: FixturesListResponse['items'][0]) {
   return '—';
 }
 
+function parsePage(raw: string | null) {
+  const n = Number.parseInt(raw || '1', 10);
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
 export function FixturesPage() {
   const { get, apiBaseUrl } = useScrapperClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -53,25 +59,31 @@ export function FixturesPage() {
   const appId = searchParams.get('appId') || '';
   const team = searchParams.get('team') || '';
   const dataStatus = searchParams.get('dataStatus') || '';
-  const source = searchParams.get('source') || 'all';
+  const source = searchParams.get('source') || 'session';
+  const showIdle = searchParams.get('showIdle') === '1';
+  const page = parsePage(searchParams.get('page'));
 
   const [teamDraft, setTeamDraft] = useState(team);
   const [appIdDraft, setAppIdDraft] = useState(appId);
 
+  const offset = (page - 1) * DEFAULT_PAGE_SIZE;
+
   const queryKey = useMemo(
-    () => ['fixtures', apiBaseUrl, appId, team, dataStatus, source],
-    [apiBaseUrl, appId, team, dataStatus, source]
+    () => ['fixtures', apiBaseUrl, appId, team, dataStatus, source, showIdle, page],
+    [apiBaseUrl, appId, team, dataStatus, source, showIdle, page]
   );
 
   const fixtures = useQuery({
     queryKey,
     queryFn: () =>
       get<FixturesListResponse>('/admin/v1/fixtures', {
-        limit: 200,
+        limit: DEFAULT_PAGE_SIZE,
+        offset,
         ...(appId ? { appId } : {}),
         ...(team ? { team } : {}),
         ...(dataStatus ? { dataStatus } : {}),
-        ...(source !== 'all' ? { source } : {}),
+        source,
+        ...(!showIdle ? { activeOnly: '1' } : {}),
       }),
     refetchInterval: 20_000,
     retry: false,
@@ -88,12 +100,20 @@ export function FixturesPage() {
     'live_partial',
   ];
 
+  const setPage = (nextPage: number) => {
+    const next = new URLSearchParams(searchParams);
+    if (nextPage <= 1) next.delete('page');
+    else next.set('page', String(nextPage));
+    setSearchParams(next);
+  };
+
   const applyFilters = () => {
     const next = new URLSearchParams(searchParams);
     if (teamDraft) next.set('team', teamDraft);
     else next.delete('team');
     if (appIdDraft) next.set('appId', appIdDraft);
     else next.delete('appId');
+    next.delete('page');
     setSearchParams(next);
   };
 
@@ -101,6 +121,15 @@ export function FixturesPage() {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    next.delete('page');
+    setSearchParams(next);
+  };
+
+  const setShowIdle = (checked: boolean) => {
+    const next = new URLSearchParams(searchParams);
+    if (checked) next.set('showIdle', '1');
+    else next.delete('showIdle');
+    next.delete('page');
     setSearchParams(next);
   };
 
@@ -154,11 +183,11 @@ export function FixturesPage() {
           <select
             className="select-touch"
             value={source}
-            onChange={(e) => setFilter('source', e.target.value === 'all' ? '' : e.target.value)}
+            onChange={(e) => setFilter('source', e.target.value)}
           >
-            <option value="all">Sessions + archived</option>
-            <option value="session">Active sessions only</option>
+            <option value="session">Active sessions</option>
             <option value="archived">Archived only</option>
+            <option value="all">Sessions + archived</option>
           </select>
         </label>
         <button
@@ -170,15 +199,26 @@ export function FixturesPage() {
         </button>
       </div>
 
+      <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer w-fit">
+        <input
+          type="checkbox"
+          className="rounded border-white/20"
+          checked={showIdle}
+          onChange={(e) => setShowIdle(e.target.checked)}
+        />
+        Show idle sessions (no tracked legs)
+      </label>
+
       {fixtures.error ? (
         <p className="text-rose-300 text-sm">{String((fixtures.error as Error).message)}</p>
       ) : null}
 
-      <div className="text-xs text-slate-500">
-        {fixtures.data ? `${fixtures.data.total} match(es)` : '…'}
-        {appId ? ` · appId: ${appId}` : ''}
-        {dataStatus ? ` · filter: ${STATUS_LABELS[dataStatus] || dataStatus}` : ''}
-      </div>
+      <Pagination
+        page={page}
+        pageSize={DEFAULT_PAGE_SIZE}
+        total={fixtures.data?.total ?? 0}
+        onPageChange={setPage}
+      />
 
       <div className="md:hidden space-y-3">
         {(fixtures.data?.items || []).map((row) => (
@@ -228,7 +268,7 @@ export function FixturesPage() {
         ) : null}
       </div>
 
-      <div className="hidden md:block glass rounded-xl overflow-auto">
+      <div className="hidden md:block glass rounded-xl overflow-x-auto">
         <table className="w-full text-sm min-w-[900px]">
           <thead className="text-left text-slate-500 border-b border-white/5">
             <tr>

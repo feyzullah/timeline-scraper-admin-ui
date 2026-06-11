@@ -93,7 +93,7 @@ export function RequestsPage() {
         ) : null}
       </div>
 
-      <div className="hidden md:block glass rounded-xl overflow-auto">
+      <div className="hidden md:block glass rounded-xl overflow-x-auto">
         <table className="w-full text-sm min-w-[800px]">
           <thead className="text-left text-slate-500 border-b border-white/5">
             <tr>

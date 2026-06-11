@@ -8,6 +8,11 @@
 
 html {
   @apply bg-surface-950 text-slate-200;
+  overflow-y: scroll;
+}
+
+body {
+  overflow-y: auto;
 }
 
 body::before {

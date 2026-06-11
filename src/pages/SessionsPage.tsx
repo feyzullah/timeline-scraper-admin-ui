@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { SessionsListResponse } from '../api/types';
 import { useScrapperClient } from '../api/client';
+import { DEFAULT_PAGE_SIZE, Pagination } from '../components/Pagination';
 import { sessionDetailHref } from '../lib/sessionPaths';
 
 function SessionCard({ s }: { s: SessionsListResponse['items'][0] }) {
@@ -38,28 +39,73 @@ function SessionCard({ s }: { s: SessionsListResponse['items'][0] }) {
   );
 }
 
+function parsePage(raw: string | null) {
+  const n = Number.parseInt(raw || '1', 10);
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
 export function SessionsPage() {
   const { get, apiBaseUrl } = useScrapperClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const showIdle = searchParams.get('showIdle') === '1';
+  const page = parsePage(searchParams.get('page'));
+  const offset = (page - 1) * DEFAULT_PAGE_SIZE;
 
   const sessions = useQuery({
-    queryKey: ['admin', 'sessions', apiBaseUrl],
-    queryFn: () => get<SessionsListResponse>('/admin/v1/sessions', { limit: 100 }),
+    queryKey: ['admin', 'sessions', apiBaseUrl, showIdle, page],
+    queryFn: () =>
+      get<SessionsListResponse>('/admin/v1/sessions', {
+        limit: DEFAULT_PAGE_SIZE,
+        offset,
+        ...(!showIdle ? { activeOnly: '1' } : {}),
+      }),
     refetchInterval: 20_000,
-    retry: false
+    retry: false,
   });
 
   const items = sessions.data?.items ?? [];
+  const total = sessions.data?.total ?? items.length;
+
+  const setPage = (nextPage: number) => {
+    const next = new URLSearchParams(searchParams);
+    if (nextPage <= 1) next.delete('page');
+    else next.set('page', String(nextPage));
+    setSearchParams(next);
+  };
+
+  const setShowIdle = (checked: boolean) => {
+    const next = new URLSearchParams(searchParams);
+    if (checked) next.set('showIdle', '1');
+    else next.delete('showIdle');
+    next.delete('page');
+    setSearchParams(next);
+  };
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="page-title">Sessions</h1>
-        <p className="text-slate-500 text-sm mt-1">All match sessions (every appId). Tap a row for full detail.</p>
+        <p className="text-slate-500 text-sm mt-1">
+          Live match sessions with tracked settler legs. Idle sessions are hidden by default.
+        </p>
       </header>
+
+      <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer w-fit">
+        <input
+          type="checkbox"
+          className="rounded border-white/20"
+          checked={showIdle}
+          onChange={(e) => setShowIdle(e.target.checked)}
+        />
+        Show idle sessions (no tracked legs)
+      </label>
 
       {sessions.error ? (
         <p className="text-rose-300 text-sm">{String((sessions.error as Error).message)}</p>
       ) : null}
+
+      <Pagination page={page} pageSize={DEFAULT_PAGE_SIZE} total={total} onPageChange={setPage} />
 
       <div className="md:hidden space-y-3">
         {items.map((s) => (
@@ -85,10 +131,7 @@ export function SessionsPage() {
             {items.map((s) => (
               <tr key={`${s.appId}:${s.matchKey}`} className="border-b border-white/5 hover:bg-white/[0.02]">
                 <td className="p-3">
-                  <Link
-                    to={sessionDetailHref(s.appId, s.matchKey)}
-                    className="block group"
-                  >
+                  <Link to={sessionDetailHref(s.appId, s.matchKey)} className="block group">
                     <div className="text-white group-hover:text-accent transition-colors">
                       {s.homeTeam || '—'} vs {s.awayTeam || '—'}
                     </div>

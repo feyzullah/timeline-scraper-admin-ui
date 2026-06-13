@@ -114,6 +114,98 @@ export function factsToForm(facts: Record<string, unknown> | null | undefined): 
   };
 }
 
+function scorePairFilled(pair: ScorePair): boolean {
+  return pair.home != null && pair.away != null;
+}
+
+/** Match phase / lifecycle only — does not change scores or events. */
+export function buildStatusFactsPatch(fixtureStatusShort: string): Record<string, unknown> {
+  return { fixtureStatusShort: fixtureStatusShort?.trim() ? fixtureStatusShort.trim().toUpperCase() : null };
+}
+
+/** Half-time row only — for HT-period legs while the match may still be live. */
+export function buildHalftimeFactsPatch(halftime: ScorePair): Record<string, unknown> {
+  return {
+    score: {
+      halftime: { home: halftime.home, away: halftime.away },
+    },
+  };
+}
+
+/** Full-time row (+ goals). Optionally mark the match finished. */
+export function buildFulltimeFactsPatch(
+  fulltime: ScorePair,
+  options: { markFinished?: boolean } = {},
+): Record<string, unknown> {
+  const { markFinished = true } = options;
+  const payload: Record<string, unknown> = {
+    score: {
+      fulltime: { home: fulltime.home, away: fulltime.away },
+    },
+  };
+  if (scorePairFilled(fulltime)) {
+    payload.goals = { home: fulltime.home, away: fulltime.away };
+  }
+  if (markFinished) {
+    payload.fixtureStatusShort = 'FT';
+  }
+  return payload;
+}
+
+/** Live/current totals when timeline is incomplete — does not touch events or HT/FT rows. */
+export function buildLiveGoalsFactsPatch(goals: ScorePair): Record<string, unknown> {
+  return {
+    goals: { home: goals.home, away: goals.away },
+  };
+}
+
+function mapEventsForPayload(events: FixtureEvent[]) {
+  return events
+    .filter((e) => Number.isFinite(e.minute))
+    .map((e) => {
+      if (e.type === 'card') {
+        return { type: 'card', team: e.team, minute: e.minute, cardType: e.cardType };
+      }
+      return {
+        type: 'goal',
+        team: e.team,
+        minute: e.minute,
+        ...(e.addedTime != null ? { addedTime: e.addedTime } : {}),
+      };
+    });
+}
+
+/** Goal/card timeline — updates events and goals inferred from goal rows. */
+export function buildTimelineFactsPatch(events: FixtureEvent[]): Record<string, unknown> {
+  const mapped = mapEventsForPayload(events);
+  const payload: Record<string, unknown> = { events: mapped };
+  if (mapped.some((e) => e.type === 'goal')) {
+    payload.goals = inferGoalsFromEvents(events);
+  }
+  return payload;
+}
+
+/** Corner/card statistics block only. */
+export function buildStatisticsFactsPatch(statistics: FixtureStatistics): Record<string, unknown> {
+  const s = statistics;
+  const homeCardsSum = (s.homeYellow ?? 0) + (s.homeRed ?? 0);
+  const awayCardsSum = (s.awayYellow ?? 0) + (s.awayRed ?? 0);
+  const homeCards = s.homeCards ?? (homeCardsSum > 0 ? homeCardsSum : null);
+  const awayCards = s.awayCards ?? (awayCardsSum > 0 ? awayCardsSum : null);
+
+  const out: FixtureStatistics = {};
+  if (s.homeCorners != null) out.homeCorners = s.homeCorners;
+  if (s.awayCorners != null) out.awayCorners = s.awayCorners;
+  if (s.homeYellow != null) out.homeYellow = s.homeYellow;
+  if (s.awayYellow != null) out.awayYellow = s.awayYellow;
+  if (s.homeRed != null) out.homeRed = s.homeRed;
+  if (s.awayRed != null) out.awayRed = s.awayRed;
+  if (homeCards != null && Number.isFinite(homeCards)) out.homeCards = homeCards;
+  if (awayCards != null && Number.isFinite(awayCards)) out.awayCards = awayCards;
+
+  return Object.keys(out).length ? { statistics: out } : {};
+}
+
 export function formToFactsPayload(form: FixtureFactsForm): Record<string, unknown> {
   const inferredGoals = inferGoalsFromEvents(form.events);
   const hasGoalEvents = form.events.some((e) => e.type === 'goal');
@@ -132,19 +224,7 @@ export function formToFactsPayload(form: FixtureFactsForm): Record<string, unkno
     score.fulltime = { home: form.fulltime.home, away: form.fulltime.away };
   }
 
-  const events = form.events
-    .filter((e) => Number.isFinite(e.minute))
-    .map((e) => {
-      if (e.type === 'card') {
-        return { type: 'card', team: e.team, minute: e.minute, cardType: e.cardType };
-      }
-      return {
-        type: 'goal',
-        team: e.team,
-        minute: e.minute,
-        ...(e.addedTime != null ? { addedTime: e.addedTime } : {}),
-      };
-    });
+  const events = mapEventsForPayload(form.events);
 
   const s = form.statistics;
   const homeCardsSum = (s.homeYellow ?? 0) + (s.homeRed ?? 0);
